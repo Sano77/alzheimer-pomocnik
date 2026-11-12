@@ -1,0 +1,6 @@
+Vytvor do súboru index.html kompletnú Single Page Aplikáciu (SPA) v slovenčine pre starších pacientov s Alzheimerom a ich partnerov.
+Požiadavky:
+1. Použi čisté HTML5, Tailwind CSS (CDN) a JavaScript s prepojením na Firebase Firestore (cez spoločné FAMILY_ID = "rodina-01") a automatickým fallbackom na localStorage.
+2. UI pre seniorov: krémové pozadie (#FAF9F6), písmo aspoň 20px, tlačidlá s výškou min. 68px.
+3. Režim Pacient: živé hodiny a časť dňa, žltý box s odkazom dňa (po kliknutí prečíta nahlas cez Web Speech API sk-SK), zelené tlačidlo DOMOV (otvorí Google Maps pešiu navigáciu na uloženú adresu), červené tlačidlo SOS (zavolá navigator.geolocation.getCurrentPosition, uloží čas a GPS súradnice do objektu lastSosAlert v databáze a vytočí tel: číslo partnera), zoznam úloh/liekov a rodinný album s fotkami.
+4. Režim Partner (chránený PINom 1234): na vrchu červený výstražný box zobrazujúci posledný SOS záznam s časom a tlačidlom na otvorenie GPS súradníc v Google Mapách (https://www.google.com/maps?q=lat,lng), formuláre na úpravu adresy domov, SOS čísla, odkazu dňa, úloh a rodiny.

@@ -1,0 +1,4 @@
+Premeň existujúci index.html na inštalovateľnú PWA (Progressive Web App):
+1. Vytvor manifest.json (name: "Pomocník pre seniorov", display: "standalone", orientation: "portrait", background_color: "#FAF9F6", theme_color: "#1E293B").
+2. Vytvor Service Worker sw.js, ktorý pri inštalácii uloží index.html a manifest.json do Cache a pri udalosti fetch použije stratégiu Network falling back to cache.
+3. Doplň do index.html prepojenie na manifest.json, iOS meta tagy (apple-mobile-web-app-capable) a registráciu sw.js.
