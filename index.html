@@ -10,19 +10,25 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Pomocník">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Knižnica na generovanie QR kódov priamo na klientovi -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
-        body { background-color: #FAF9F6; color: #1A202C; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: #FAF9F6; color: #1A202C; font-family: system-ui, -apple-system, sans-serif; font-size: 20px; }
         .large-touch { min-height: 68px; }
+        input[type="checkbox"] { width: 32px; height: 32px; cursor: pointer; }
     </style>
 </head>
-<body class="min-h-screen pb-12">
+<body class="min-h-screen pb-16">
 
     <header class="bg-slate-800 text-white p-4 flex justify-between items-center shadow-md">
         <div class="flex items-center space-x-2">
-            <span id="sync-status" class="w-3 h-3 rounded-full bg-amber-400"></span>
-            <span id="sync-text" class="text-sm text-slate-300">Lokálny režim (Demo)</span>
+            <span id="sync-status" class="w-3 h-3 rounded-full bg-emerald-400"></span>
+            <div>
+                <span id="sync-text" class="text-sm font-semibold text-slate-200">Režim: Pacient</span>
+                <span id="family-badge" class="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded ml-1 font-mono">rodina-...</span>
+            </div>
         </div>
-        <button onclick="togglePartnerMode()" class="bg-slate-700 hover:bg-slate-600 text-sm px-4 py-2 rounded-lg border border-slate-500">
+        <button onclick="togglePartnerMode()" class="bg-slate-700 hover:bg-slate-600 text-sm font-semibold px-4 py-2 rounded-lg border border-slate-500">
             Režim Partner (PIN)
         </button>
     </header>
@@ -36,22 +42,22 @@
         </section>
 
         <section onclick="speakText(document.getElementById('daily-note-display').innerText)" 
-                 class="bg-amber-100 p-6 rounded-2xl shadow-md border-2 border-amber-300 cursor-pointer active:bg-amber-200">
+                 class="bg-amber-100 p-6 rounded-2xl shadow-md border-2 border-amber-300 cursor-pointer active:bg-amber-200 transition">
             <div class="flex justify-between items-center mb-2">
                 <h2 class="text-xl font-bold text-amber-900">📌 Dôležitý odkaz na dnes:</h2>
-                <span class="text-sm bg-amber-200 text-amber-900 px-2 py-1 rounded">🔊 Prečítať</span>
+                <span class="text-sm bg-amber-200 text-amber-900 px-3 py-1 rounded-full font-bold">🔊 Prečítať</span>
             </div>
             <p id="daily-note-display" class="text-2xl font-semibold text-slate-900 leading-relaxed"></p>
         </section>
 
         <section class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <button onclick="navigateHome()" class="large-touch bg-emerald-600 hover:bg-emerald-700 text-white p-5 rounded-2xl shadow-lg flex flex-col items-center justify-center space-y-2 border-b-4 border-emerald-900">
+            <button onclick="navigateHome()" class="large-touch bg-emerald-600 hover:bg-emerald-700 text-white p-5 rounded-2xl shadow-lg flex flex-col items-center justify-center space-y-2 border-b-4 border-emerald-900 active:scale-98 transition">
                 <span class="text-4xl">🏠</span>
                 <span class="text-2xl font-extrabold">ÍSŤ DOMOV</span>
                 <span class="text-sm text-emerald-100">Spustiť navigáciu</span>
             </button>
 
-            <button onclick="triggerSOS()" class="large-touch bg-red-600 hover:bg-red-700 text-white p-5 rounded-2xl shadow-lg flex flex-col items-center justify-center space-y-2 border-b-4 border-red-900">
+            <button onclick="triggerSOS()" class="large-touch bg-red-600 hover:bg-red-700 text-white p-5 rounded-2xl shadow-lg flex flex-col items-center justify-center space-y-2 border-b-4 border-red-900 active:scale-98 transition animate-pulse">
                 <span class="text-4xl">🆘</span>
                 <span class="text-2xl font-extrabold">ZAVOLAŤ POMOC</span>
                 <span class="text-sm text-red-100">Odošle GPS a zavolá</span>
@@ -74,51 +80,90 @@
         <div class="bg-blue-900 text-white p-6 rounded-2xl shadow-md flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold">🛠 Správa aplikácie (Partner)</h1>
-                <p class="text-blue-200 text-sm">Zmeny sa synchronizujú s telefónom pacienta.</p>
+                <p class="text-blue-200 text-sm">Zmeny sa synchronizujú priamo s telefónom pacienta.</p>
             </div>
-            <button onclick="switchToPatientView()" class="bg-white text-blue-900 font-bold px-4 py-2 rounded-xl shadow">Späť</button>
+            <button onclick="switchToPatientView()" class="bg-white text-blue-900 font-bold px-4 py-2 rounded-xl shadow hover:bg-blue-50">Späť</button>
         </div>
 
+        <!-- BOX: Párovanie rodiny a prepojenie s pacientom -->
+        <section class="bg-emerald-50 border-2 border-emerald-400 p-6 rounded-2xl shadow-md space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-emerald-950">🔗 Prepojenie s telefónom pacienta</h2>
+                    <p class="text-sm text-emerald-800">Unikátny kód vašej rodiny: <b id="display-family-id" class="font-mono text-base bg-white px-2 py-0.5 rounded border border-emerald-300">...</b></p>
+                </div>
+                <button onclick="generateNewFamilyId()" class="text-xs bg-white text-emerald-800 border border-emerald-300 px-3 py-1.5 rounded-lg font-bold hover:bg-emerald-100">
+                    Nový kód
+                </button>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-emerald-200 flex flex-col sm:flex-row items-center gap-4">
+                <canvas id="qr-canvas" class="rounded-lg shadow border"></canvas>
+                <div class="space-y-2 flex-1 text-center sm:text-left">
+                    <p class="text-base font-semibold text-slate-800">Ako pripojiť telefón pacienta:</p>
+                    <p class="text-sm text-slate-600">1. Naskenujte tento QR kód fotoaparátom v telefóne pacienta.</p>
+                    <p class="text-sm text-slate-600">2. Alebo pošlite odkaz cez WhatsApp / SMS:</p>
+                    <button onclick="copyPatientLink()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-2.5 px-4 rounded-xl shadow flex items-center justify-center gap-2">
+                        📋 Skopírovať odkaz pre pacienta
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SOS Upozornenie -->
         <section id="sos-alert-box" class="bg-red-50 p-6 rounded-2xl shadow-md border-2 border-red-400 hidden">
             <div class="flex justify-between items-start">
                 <div>
                     <h2 class="text-xl font-extrabold text-red-800">🚨 Záznam o stlačení SOS!</h2>
                     <p id="sos-time-display" class="text-red-700 font-medium mt-1"></p>
-                    <p id="sos-accuracy-display" class="text-xs text-red-600 mt-1"></p>
+                    <p id="sos-accuracy-display" class="text-sm text-red-600 mt-1"></p>
                 </div>
-                <button onclick="clearSosAlert()" class="text-xs bg-white text-red-700 border border-red-300 px-3 py-1 rounded-lg font-bold">Vymazať</button>
+                <button onclick="clearSosAlert()" class="text-sm bg-white text-red-700 border border-red-300 px-3 py-1.5 rounded-lg font-bold hover:bg-red-50">Vymazať</button>
             </div>
             <div id="sos-map-link-container" class="mt-4"></div>
         </section>
 
         <section class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 space-y-4">
             <h2 class="text-xl font-bold text-slate-800 border-b pb-2">1. Nastavenia a bezpečnosť</h2>
-            <textarea id="input-daily-note" rows="2" class="w-full p-3 border rounded-xl" placeholder="Dnešný odkaz"></textarea>
-            <input type="text" id="input-home-address" class="w-full p-3 border rounded-xl" placeholder="Adresa domov (napr. Hlavná 15, Bratislava)">
-            <input type="tel" id="input-sos-phone" class="w-full p-3 border rounded-xl" placeholder="SOS telefón (+421...)">
-            <button onclick="saveGeneralSettings()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">💾 Uložiť nastavenia</button>
+            <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">Dnešný odkaz pre pacienta:</label>
+                <textarea id="input-daily-note" rows="2" class="w-full p-3 border rounded-xl text-lg" placeholder="Dnešný odkaz"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">Adresa domova (pre tlačidlo ÍSŤ DOMOV):</label>
+                <input type="text" id="input-home-address" class="w-full p-3 border rounded-xl text-lg" placeholder="Adresa domov (napr. Hlavná 15, Bratislava)">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">Telefónne číslo partnera (pre SOS tlačidlo):</label>
+                <input type="tel" id="input-sos-phone" class="w-full p-3 border rounded-xl text-lg" placeholder="Telefónne číslo pre SOS (napr. 0902250390)">
+            </div>
+            <button onclick="saveGeneralSettings()" class="w-full large-touch bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xl">
+                💾 Uložiť nastavenia
+            </button>
         </section>
 
         <section class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 space-y-4">
-            <h2 class="text-xl font-bold text-slate-800 border-b pb-2">2. Denné úlohy a lieky</h2>
+            <h2 class="text-xl font-bold text-slate-800 border-b pb-2">2. Správa úloh a liekov</h2>
             <div class="flex gap-2">
                 <input type="time" id="input-task-time" class="p-3 border rounded-xl" value="08:00">
                 <input type="text" id="input-task-title" class="p-3 border rounded-xl flex-1" placeholder="Názov úlohy">
-                <button onclick="addTask()" class="bg-emerald-600 text-white font-bold px-4 rounded-xl">+ Pridať</button>
+                <button onclick="addTask()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 rounded-xl">Pridať</button>
             </div>
-            <div id="partner-tasks-list" class="space-y-2 mt-4"></div>
+            <div id="partner-tasks-list" class="space-y-2 pt-2"></div>
         </section>
 
         <section class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 space-y-4">
-            <h2 class="text-xl font-bold text-slate-800 border-b pb-2">3. Rodinný album</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input type="text" id="input-family-name" class="p-3 border rounded-xl" placeholder="Meno">
-                <input type="text" id="input-family-relation" class="p-3 border rounded-xl" placeholder="Vzťah">
-                <input type="tel" id="input-family-phone" class="p-3 border rounded-xl" placeholder="Telefón">
-                <input type="url" id="input-family-photo" class="p-3 border rounded-xl" placeholder="URL fotky">
+            <h2 class="text-xl font-bold text-slate-800 border-b pb-2">3. Správa rodiny a blízkych</h2>
+            <div class="space-y-3">
+                <input type="text" id="input-fam-name" class="w-full p-3 border rounded-xl text-lg" placeholder="Meno (napr. Zuzka)">
+                <input type="text" id="input-fam-relation" class="w-full p-3 border rounded-xl text-lg" placeholder="Vzťah (napr. Vaša dcéra)">
+                <input type="tel" id="input-fam-phone" class="w-full p-3 border rounded-xl text-lg" placeholder="Telefónne číslo">
+                <input type="text" id="input-fam-photo" class="w-full p-3 border rounded-xl text-lg" placeholder="URL fotky (voliteľné)">
+                <button onclick="addFamilyMember()" class="w-full large-touch bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xl">
+                    ➕ Pridať člena rodiny
+                </button>
             </div>
-            <button onclick="addFamilyMember()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl">+ Pridať osobu</button>
-            <div id="partner-family-list" class="space-y-2 mt-4"></div>
+            <div id="partner-family-list" class="space-y-2 pt-2"></div>
         </section>
     </main>
 
@@ -127,45 +172,106 @@
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const PARTNER_PIN = "1234";
-        const FAMILY_ID = "rodina-01";
+        
+        // Zistenie alebo vygenerovanie rodinného ID
+        function resolveFamilyId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const fromUrl = urlParams.get('family');
+            if (fromUrl && fromUrl.trim().length > 0) {
+                const cleanId = fromUrl.trim().toLowerCase();
+                localStorage.setItem('alzheimer_family_id', cleanId);
+                return cleanId;
+            }
+            const stored = localStorage.getItem('alzheimer_family_id');
+            if (stored) {
+                return stored;
+            }
+            // Nová rodina: vygenerujeme unikátny kľúč
+            const newId = 'rodina-' + Math.random().toString(36).substring(2, 8);
+            localStorage.setItem('alzheimer_family_id', newId);
+            return newId;
+        }
+
+        let FAMILY_ID = resolveFamilyId();
+
         const firebaseConfig = { apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
 
         let appData = {
-            dailyNote: "Dnes o 15:00 príde na návštevu syn Peter. Lieky máš na stole.",
-            homeAddress: "Námestie SNP 1, Bratislava",
-            sosPhone: "+421901123456",
+            dailyNote: "Dnes je krásny deň. Nezabudni sa po raňajkách napiť vody a o 10:00 príde Zuzka.",
+            homeAddress: "Vysoká 15, Bratislava",
+            sosPhone: "0902250390",
             lastSosAlert: null,
-            tasks: [{ id: 1, time: "08:30", title: "Raňajky a lieky", completed: false }],
-            family: [{ id: 101, name: "Mária", relation: "Manželka", phone: "+421901123456", photo: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80" }]
+            tasks: [
+                { id: 1, time: "08:30", title: "Užiť ranné lieky po raňajkách", completed: false },
+                { id: 2, time: "10:00", title: "Vypiť pohár čistej vody", completed: false },
+                { id: 3, time: "14:00", title: "Prechádzka na čerstvom vzduchu", completed: false }
+            ],
+            family: [
+                { id: 101, name: "Zuzka", relation: "Vaša dcéra", phone: "0902250390", photo: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80" },
+                { id: 102, name: "Peter", relation: "Váš syn", phone: "0903123456", photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80" }
+            ]
         };
 
         let db = null, isCloudActive = false;
 
         function initDatabase() {
+            document.getElementById('family-badge').innerText = FAMILY_ID;
+            document.getElementById('display-family-id').innerText = FAMILY_ID;
+            updateQrCode();
+
             if (firebaseConfig.apiKey && firebaseConfig.projectId) {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 isCloudActive = true;
                 document.getElementById('sync-status').className = "w-3 h-3 rounded-full bg-emerald-400";
-                document.getElementById('sync-text').innerText = "Cloud aktívny";
+                document.getElementById('sync-text').innerText = "Cloud synchronizovaný";
                 onSnapshot(doc(db, "families", FAMILY_ID), (snap) => {
                     if (snap.exists()) { appData = snap.data(); renderAll(); } else { saveData(); }
                 });
             } else {
-                const saved = localStorage.getItem("alzheimer_app_data");
+                const saved = localStorage.getItem(`alzheimer_data_${FAMILY_ID}`);
                 if (saved) appData = JSON.parse(saved);
                 renderAll();
             }
         }
 
         async function saveData() {
-            localStorage.setItem("alzheimer_app_data", JSON.stringify(appData));
+            localStorage.setItem(`alzheimer_data_${FAMILY_ID}`, JSON.stringify(appData));
             renderAll();
             if (isCloudActive && db) await setDoc(doc(db, "families", FAMILY_ID), appData);
         }
 
+        function updateQrCode() {
+            const baseUrl = window.location.origin + window.location.pathname;
+            const fullLink = `${baseUrl}?family=${FAMILY_ID}`;
+            const canvas = document.getElementById('qr-canvas');
+            if (window.QRCode && canvas) {
+                window.QRCode.toCanvas(canvas, fullLink, { width: 140, margin: 2 }, function (error) {
+                    if (error) console.error(error);
+                });
+            }
+        }
+
+        window.copyPatientLink = function() {
+            const baseUrl = window.location.origin + window.location.pathname;
+            const fullLink = `${baseUrl}?family=${FAMILY_ID}`;
+            navigator.clipboard.writeText(fullLink).then(() => {
+                alert("Odkaz bol skopírovaný do schránky!\n\nPošlite ho pacientovi napr. cez WhatsApp alebo SMS.");
+            }).catch(() => {
+                prompt("Skopírujte si tento odkaz:", fullLink);
+            });
+        };
+
+        window.generateNewFamilyId = function() {
+            if (confirm("Naozaj chcete vygenerovať nový rodinný kód? Doterajšie nastavenia zostanú v pôvodnom kóde.")) {
+                const newId = 'rodina-' + Math.random().toString(36).substring(2, 8);
+                localStorage.setItem('alzheimer_family_id', newId);
+                window.location.search = `?family=${newId}`;
+            }
+        };
+
         function renderAll() {
-            document.getElementById('daily-note-display').innerText = appData.dailyNote || "";
+            document.getElementById('daily-note-display').innerText = appData.dailyNote || "Pekný a pokojný deň!";
             const sosBox = document.getElementById('sos-alert-box');
             if (appData.lastSosAlert && appData.lastSosAlert.timestamp) {
                 sosBox.classList.remove('hidden');
@@ -173,7 +279,7 @@
                 if (appData.lastSosAlert.lat) {
                     document.getElementById('sos-accuracy-display').innerText = `Presnosť: ~${Math.round(appData.lastSosAlert.accuracy)} m`;
                     const url = `https://www.google.com/maps?q=${appData.lastSosAlert.lat},${appData.lastSosAlert.lng}`;
-                    document.getElementById('sos-map-link-container').innerHTML = `<a href="${url}" target="_blank" class="block w-full text-center bg-red-600 text-white font-bold py-3 rounded-xl">🗺 Otvoriť polohu na Google Mape</a>`;
+                    document.getElementById('sos-map-link-container').innerHTML = `<a href="${url}" target="_blank" class="block w-full text-center bg-red-600 text-white font-bold py-3 rounded-xl shadow hover:bg-red-700">🗺 Otvoriť polohu na Google Mape</a>`;
                 } else {
                     document.getElementById('sos-accuracy-display').innerText = "GPS nedostupné.";
                     document.getElementById('sos-map-link-container').innerHTML = "";
@@ -182,12 +288,12 @@
 
             const pt = document.getElementById('patient-tasks-list'); pt.innerHTML = "";
             appData.tasks.forEach(t => {
-                pt.innerHTML += `<div onclick="window.toggleTask(${t.id})" class="large-touch p-4 rounded-xl border-2 ${t.completed ? 'bg-emerald-100 border-emerald-400' : 'bg-slate-50 border-slate-300'} flex items-center justify-between cursor-pointer"><div class="flex items-center space-x-4"><span class="text-3xl">${t.completed ? '✅' : '⚪'}</span><div><span class="text-lg font-bold text-blue-800 block">${t.time}</span><span class="text-2xl font-semibold ${t.completed ? 'line-through text-emerald-900' : ''}">${t.title}</span></div></div><button onclick="event.stopPropagation(); window.speakText('${t.time}. ${t.title}')" class="bg-white border px-3 py-2 rounded-lg text-xl">🔊</button></div>`;
+                pt.innerHTML += `<div onclick="window.toggleTask(${t.id})" class="large-touch p-4 rounded-xl border-2 ${t.completed ? 'bg-emerald-100 border-emerald-400' : 'bg-slate-50 border-slate-300'} flex items-center justify-between cursor-pointer"><div class="flex items-center space-x-4"><span class="text-3xl">${t.completed ? '✅' : '⚪'}</span><div><span class="text-lg font-bold text-blue-800 block">${t.time || ''}</span><span class="text-2xl font-semibold ${t.completed ? 'line-through text-emerald-900' : ''}">${t.title}</span></div></div><button onclick="event.stopPropagation(); window.speakText('${t.time || ''}. ${t.title}')" class="bg-white border px-3 py-2 rounded-lg text-xl shadow-sm">🔊</button></div>`;
             });
 
             const pf = document.getElementById('patient-family-list'); pf.innerHTML = "";
             appData.family.forEach(p => {
-                pf.innerHTML += `<div class="bg-slate-50 p-4 rounded-xl border-2 flex flex-col items-center text-center"><img src="${p.photo || 'https://via.placeholder.com/150'}" class="w-24 h-24 rounded-full object-cover mb-2"><h3 class="text-2xl font-bold">${p.name}</h3><p class="text-lg text-slate-600 mb-3">${p.relation}</p><div class="flex space-x-2 w-full"><button onclick="window.speakText('${p.name}, ${p.relation}')" class="flex-1 bg-amber-100 text-amber-900 font-bold py-2 rounded-xl">🔊 Kto je?</button><a href="tel:${p.phone}" class="flex-1 bg-blue-600 text-white font-bold py-2 rounded-xl flex items-center justify-center">📞 Volať</a></div></div>`;
+                pf.innerHTML += `<div class="bg-slate-50 p-4 rounded-xl border-2 flex flex-col items-center text-center shadow-sm"><img src="${p.photo || 'https://via.placeholder.com/150'}" class="w-24 h-24 rounded-full object-cover mb-2 border-2 border-slate-200"><h3 class="text-2xl font-bold">${p.name}</h3><p class="text-lg text-slate-600 mb-3">${p.relation}</p><div class="flex space-x-2 w-full"><button onclick="window.speakText('${p.name}, ${p.relation}')" class="flex-1 bg-amber-100 text-amber-900 font-bold py-2 rounded-xl">🔊 Kto je?</button><a href="tel:${p.phone}" class="flex-1 bg-blue-600 text-white font-bold py-2 rounded-xl flex items-center justify-center">📞 Volať</a></div></div>`;
             });
 
             document.getElementById('input-daily-note').value = appData.dailyNote || "";
@@ -195,10 +301,10 @@
             document.getElementById('input-sos-phone').value = appData.sosPhone || "";
 
             const prt = document.getElementById('partner-tasks-list'); prt.innerHTML = "";
-            appData.tasks.forEach(t => { prt.innerHTML += `<div class="flex justify-between p-2 bg-slate-50 border rounded"><span><b>${t.time}</b> ${t.title}</span><button onclick="window.deleteTask(${t.id})" class="text-red-600 font-bold">🗑</button></div>`; });
+            appData.tasks.forEach(t => { prt.innerHTML += `<div class="flex justify-between p-2 bg-slate-50 border rounded text-lg"><span><b>${t.time || ''}</b> ${t.title}</span><button onclick="window.deleteTask(${t.id})" class="text-red-600 font-bold px-2 py-1 bg-red-50 rounded">🗑</button></div>`; });
 
             const prf = document.getElementById('partner-family-list'); prf.innerHTML = "";
-            appData.family.forEach(p => { prf.innerHTML += `<div class="flex justify-between p-2 bg-slate-50 border rounded"><span><b>${p.name}</b> (${p.relation})</span><button onclick="window.deleteFamilyMember(${p.id})" class="text-red-600 font-bold">🗑</button></div>`; });
+            appData.family.forEach(p => { prf.innerHTML += `<div class="flex justify-between p-2 bg-slate-50 border rounded text-lg"><div><span class="font-bold">${p.name}</span> <span class="text-sm text-slate-500">(${p.relation})</span><div class="text-sm text-slate-600">${p.phone}</div></div><button onclick="window.deleteFamilyMember(${p.id})" class="text-red-600 font-bold px-2 py-1 bg-red-50 rounded">🗑</button></div>`; });
         }
 
         window.triggerSOS = function() {
@@ -215,6 +321,7 @@
         };
 
         window.clearSosAlert = () => { appData.lastSosAlert = null; saveData(); };
+
         window.navigateHome = () => {
             if (!appData.homeAddress) {
                 alert("Adresa domova nie je zadaná.");
@@ -224,30 +331,28 @@
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
             if (isIOS) {
-                // Apple Maps - priame spustenie navigácie pešo
                 window.location.href = `maps://?daddr=${enc}&dirflg=w`;
             } else {
-                // Google Maps intent / geo - priame spustenie navigácie
                 window.location.href = `google.navigation:q=${enc}&mode=w`;
-                // Fallback na webový URL intent s automatickou navigáciou
                 setTimeout(() => {
                     window.location.href = `https://www.google.com/maps/dir/?api=1&destination=${enc}&travelmode=walking&dir_action=navigate`;
                 }, 1000);
             }
         };
+
         window.toggleTask = (id) => { const t = appData.tasks.find(x => x.id === id); if (t) { t.completed = !t.completed; saveData(); } };
         window.speakText = (txt) => { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(txt); u.lang = 'sk-SK'; u.rate = 0.9; window.speechSynthesis.speak(u); } };
-        window.togglePartnerMode = () => { const pv = document.getElementById('partner-view'); if (pv.classList.contains('hidden')) { if (prompt("PIN (1234):") === PARTNER_PIN) { document.getElementById('patient-view').classList.add('hidden'); pv.classList.remove('hidden'); } } else { window.switchToPatientView(); } };
+        window.togglePartnerMode = () => { const pv = document.getElementById('partner-view'); if (pv.classList.contains('hidden')) { if (prompt("Zadajte PIN partnera (1234):") === PARTNER_PIN) { document.getElementById('patient-view').classList.add('hidden'); pv.classList.remove('hidden'); updateQrCode(); } } else { window.switchToPatientView(); } };
         window.switchToPatientView = () => { document.getElementById('partner-view').classList.add('hidden'); document.getElementById('patient-view').classList.remove('hidden'); };
-        window.saveGeneralSettings = () => { appData.dailyNote = document.getElementById('input-daily-note').value; appData.homeAddress = document.getElementById('input-home-address').value; appData.sosPhone = document.getElementById('input-sos-phone').value; saveData(); alert("Uložené."); };
+        window.saveGeneralSettings = () => { appData.dailyNote = document.getElementById('input-daily-note').value; appData.homeAddress = document.getElementById('input-home-address').value; appData.sosPhone = document.getElementById('input-sos-phone').value; saveData(); alert("Nastavenia boli úspešne uložené!"); };
         window.addTask = () => { const time = document.getElementById('input-task-time').value, title = document.getElementById('input-task-title').value.trim(); if (title) { appData.tasks.push({ id: Date.now(), time, title, completed: false }); appData.tasks.sort((a,b)=>a.time.localeCompare(b.time)); saveData(); } };
         window.deleteTask = (id) => { appData.tasks = appData.tasks.filter(t => t.id !== id); saveData(); };
-        window.addFamilyMember = () => { const name = document.getElementById('input-family-name').value.trim(), relation = document.getElementById('input-family-relation').value.trim(), phone = document.getElementById('input-family-phone').value.trim(), photo = document.getElementById('input-family-photo').value.trim(); if (name && relation) { appData.family.push({ id: Date.now(), name, relation, phone, photo }); saveData(); } };
+        window.addFamilyMember = () => { const name = document.getElementById('input-fam-name').value.trim(), relation = document.getElementById('input-fam-relation').value.trim(), phone = document.getElementById('input-fam-phone').value.trim(), photo = document.getElementById('input-fam-photo').value.trim(); if (name && relation) { appData.family.push({ id: Date.now(), name, relation, phone, photo }); saveData(); } };
         window.deleteFamilyMember = (id) => { appData.family = appData.family.filter(f => f.id !== id); saveData(); };
 
         function updateClock() {
             const now = new Date(), h = now.getHours();
-            document.getElementById('current-time').innerText = `${h}:${String(now.getMinutes()).padStart(2, '0')}`;
+            document.getElementById('current-time').innerText = `${String(h).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             document.getElementById('day-part').innerText = h < 9 ? "Ráno" : h < 12 ? "Dopoludnie" : h < 14 ? "Obed" : h < 18 ? "Popoludnie" : h < 22 ? "Večer" : "Noc";
             document.getElementById('current-date').innerText = now.toLocaleDateString('sk-SK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
